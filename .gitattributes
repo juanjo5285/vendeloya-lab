@@ -1,0 +1,7 @@
+# Evita que Windows convierta los finales de línea y rompa los scripts dentro de los contenedores
+* text=auto
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.conf text eol=lf
+*.md text eol=lf

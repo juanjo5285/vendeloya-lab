@@ -1,0 +1,60 @@
+name: seguridad-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  escaneos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar carpeta de evidencias
+        run: |
+          mkdir -p evidencias
+          date -u +"%Y-%m-%d %H:%M UTC" > evidencias/fecha_ejecucion.txt
+
+      - name: Descargar plugins de la línea base
+        run: |
+          mkdir -p plugins
+          for slug in woocommerce woocommerce-gateway-stripe elementor wordpress-seo wp-mail-smtp wp-fastest-cache wp-2fa updraftplus capability-manager-enhanced; do
+            curl -fsSL -o "/tmp/$slug.zip" "https://downloads.wordpress.org/plugin/$slug.latest-stable.zip"
+            unzip -q "/tmp/$slug.zip" -d plugins
+          done
+          find plugins -maxdepth 2 -name readme.txt -exec grep -H -m1 "Stable tag" {} \; > evidencias/plugins_versiones.txt || true
+
+      - name: SAST con Semgrep (código de los plugins)
+        run: |
+          pip install semgrep
+          semgrep --version > evidencias/semgrep_version.txt
+          semgrep scan --config p/php --config p/owasp-top-ten --metrics=off -o evidencias/semgrep_plugins.txt plugins || true
+
+      - name: SCA y secretos en plugins (Trivy)
+        run: |
+          docker run --rm -v "$PWD:/src" aquasec/trivy:latest fs --scanners vuln,secret --severity HIGH,CRITICAL -o /src/evidencias/trivy_plugins.txt /src/plugins || true
+
+      - name: Escaneo de imágenes de contenedor (Trivy)
+        run: |
+          for img in wordpress:latest mysql:8.0 nginx:stable; do
+            nombre=$(echo "$img" | tr ':/' '__')
+            docker run --rm -v "$PWD/evidencias:/out" aquasec/trivy:latest image --severity HIGH,CRITICAL -o "/out/trivy_imagen_$nombre.txt" "$img" || true
+          done
+
+      - name: Infraestructura como código (Checkov)
+        run: |
+          pip install checkov
+          checkov -d . --skip-path plugins --skip-path evidencias --compact --soft-fail > evidencias/checkov.txt || true
+
+      - name: Guardar evidencias
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidencias-seguridad
+          path: evidencias/
+          retention-days: 30

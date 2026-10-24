@@ -1,0 +1,28 @@
+# Credenciales y configuración local
+.env
+*.env
+!.env.example
+
+# Respaldos y datos del laboratorio
+*.sql
+wp-content/
+wp-content-limpio/
+plugins/
+
+# Evidencias (se guardan aparte; contienen capturas y datos)
+evidencias/
+
+# ZAP
+*.session
+*.session.*
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+
+# Sistema y editor
+.vscode/
+Thumbs.db
+.DS_Store
