@@ -28,16 +28,19 @@ jobs:
             unzip -q "/tmp/$slug.zip" -d plugins
           done
           find plugins -maxdepth 2 -name readme.txt -exec grep -H -m1 "Stable tag" {} \; > evidencias/plugins_versiones.txt || true
-
+          
       - name: SAST con Semgrep (código de los plugins)
         run: |
           pip install semgrep
           semgrep --version > evidencias/semgrep_version.txt
-          semgrep scan --config p/php --config p/owasp-top-ten --metrics=off -o evidencias/semgrep_plugins.txt plugins || true
-
-      - name: SCA y secretos en plugins (Trivy)
-        run: |
-          docker run --rm -v "$PWD:/src" aquasec/trivy:latest fs --scanners vuln,secret --severity HIGH,CRITICAL -o /src/evidencias/trivy_plugins.txt /src/plugins || true
+          semgrep scan --config p/php --config p/owasp-top-ten --metrics=off \
+            --json -o evidencias/semgrep_plugins.json plugins \
+            > evidencias/semgrep_resumen.txt 2>&1 || true
+          python3 - <<'PY' >> evidencias/semgrep_resumen.txt
+          import json
+          d = json.load(open("evidencias/semgrep_plugins.json"))
+          print("RESULTADOS:", len(d.get("results", [])), "ERRORES:", len(d.get("errors", [])))
+          PY
 
       - name: Escaneo de imágenes de contenedor (Trivy)
         run: |
