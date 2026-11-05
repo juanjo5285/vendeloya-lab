@@ -28,18 +28,21 @@ jobs:
             unzip -q "/tmp/$slug.zip" -d plugins
           done
           find plugins -maxdepth 2 -name readme.txt -exec grep -H -m1 "Stable tag" {} \; > evidencias/plugins_versiones.txt || true
-          
+
       - name: SAST con Semgrep (código de los plugins)
         run: |
           pip install semgrep
           semgrep --version > evidencias/semgrep_version.txt
+          cp -r plugins /tmp/plugins_scan
+          cd /tmp/plugins_scan
           semgrep scan --config p/php --config p/owasp-top-ten --metrics=off \
-            --json -o evidencias/semgrep_plugins.json plugins \
-            > evidencias/semgrep_resumen.txt 2>&1 || true
+            --json -o "$GITHUB_WORKSPACE/evidencias/semgrep_plugins.json" . \
+            > "$GITHUB_WORKSPACE/evidencias/semgrep_resumen.txt" 2>&1 || true
+          cd "$GITHUB_WORKSPACE"
           python3 - <<'PY' >> evidencias/semgrep_resumen.txt
           import json
           d = json.load(open("evidencias/semgrep_plugins.json"))
-          print("RESULTADOS:", len(d.get("results", [])), "ERRORES:", len(d.get("errors", [])))
+          print("RESULTADOS:", len(d.get("results", [])), "ERRORES:", len(d.get("errors", [])), "ARCHIVOS:", len(d.get("paths", {}).get("scanned", [])))
           PY
 
       - name: Escaneo de imágenes de contenedor (Trivy)
