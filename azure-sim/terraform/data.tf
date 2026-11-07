@@ -11,6 +11,8 @@ resource "azurerm_private_dns_zone_virtual_network_link" "mysql" {
 }
 
 resource "azurerm_mysql_flexible_server" "db" {
+  #checkov:skip=CKV_AZURE_53:El servidor usa integración con la red virtual (subred delegada) y no tiene punto de conexión público.
+  #checkov:skip=CKV2_AZURE_56:MySQL flexible se aísla con subred delegada y DNS privado; no usa Private Endpoint por diseño del servicio.
   name                         = "${var.prefix}-mysql"
   location                     = azurerm_resource_group.rg.location
   resource_group_name          = azurerm_resource_group.rg.name
@@ -45,6 +47,8 @@ resource "azurerm_mysql_flexible_server_configuration" "tls_version" {
 }
 
 resource "azurerm_storage_account" "backups" {
+  #checkov:skip=CKV_AZURE_33:La cuenta se usa solo para blobs de respaldo; no se usa el servicio de colas.
+  #checkov:skip=CKV2_AZURE_1:Se usan llaves administradas por Microsoft; la llave propia queda para producción si hay requisito de cumplimiento.
   name                            = "${var.prefix}backup001"
   location                        = azurerm_resource_group.rg.location
   resource_group_name             = azurerm_resource_group.rg.name
@@ -66,5 +70,19 @@ resource "azurerm_storage_account" "backups" {
   network_rules {
     default_action = "Deny"
     bypass         = ["AzureServices"]
+  }
+}
+
+resource "azurerm_private_endpoint" "backups" {
+  name                = "${var.prefix}-backups-pe"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  subnet_id           = azurerm_subnet.pe.id
+
+  private_service_connection {
+    name                           = "backups"
+    private_connection_resource_id = azurerm_storage_account.backups.id
+    subresource_names              = ["blob"]
+    is_manual_connection           = false
   }
 }

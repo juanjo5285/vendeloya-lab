@@ -50,6 +50,18 @@ resource "azurerm_subnet" "db" {
   }
 }
 
+resource "azurerm_subnet" "pe" {
+  name                 = "snet-private-endpoints"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.20.4.0/24"]
+}
+
+resource "azurerm_subnet_network_security_group_association" "pe" {
+  subnet_id                 = azurerm_subnet.pe.id
+  network_security_group_id = azurerm_network_security_group.private.id
+}
+
 resource "azurerm_subnet_network_security_group_association" "aks" {
   subnet_id                 = azurerm_subnet.aks.id
   network_security_group_id = azurerm_network_security_group.private.id

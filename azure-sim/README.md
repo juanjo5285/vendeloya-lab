@@ -9,4 +9,4 @@ No se crea ningún recurso en Azure ni se usa una suscripción real.
   sistema de archivos de solo lectura y políticas de red que niegan todo por defecto.
 
 Los secretos no se escriben aquí: `db_admin_password` se pasa por variable. Los valores `0000...` son marcadores.
-Estado de la validación: los archivos se evalúan con Checkov en la integración continua (`seguridad-ci`).
+Estado de la validación: Checkov (integración continua `seguridad-ci`) los evaluó el 7 de noviembre de 2026; los hallazgos y su tratamiento están en el informe. Las excepciones llevan `checkov:skip` con su justificación.

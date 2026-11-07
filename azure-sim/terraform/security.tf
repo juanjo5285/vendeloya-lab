@@ -33,3 +33,17 @@ resource "azurerm_web_application_firewall_policy" "waf" {
     }
   }
 }
+
+resource "azurerm_private_endpoint" "kv" {
+  name                = "${var.prefix}-kv-pe"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  subnet_id           = azurerm_subnet.pe.id
+
+  private_service_connection {
+    name                           = "kv"
+    private_connection_resource_id = azurerm_key_vault.kv.id
+    subresource_names              = ["vault"]
+    is_manual_connection           = false
+  }
+}
