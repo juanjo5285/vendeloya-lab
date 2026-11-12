@@ -26,3 +26,6 @@ evidencias/
 .vscode/
 Thumbs.db
 .DS_Store
+
+# Paquetes de entrega
+*.zip
